@@ -1,0 +1,16 @@
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# Build directories
+cmake-build-debug/
+cmake-build-release/
+bin/
+obj/
+
+# Executables and data
+*.exe
+*.o
+*.obj
+highscore.txt
