@@ -108,7 +108,11 @@ void Game::DrawBoard() {
                 int cellValue = board[y * LOGICAL_BOARD_WIDTH + x];
 
                 // Check for line-clearing animation (flashing).
-                if (is_clearing_lines && std::find(lines_to_clear.begin(), lines_to_clear.end(), y) != lines_to_clear.end()) {
+                // Wall cells are excluded so the border characters don't get
+                // overwritten by the flash effect.
+                if (is_clearing_lines &&
+                    cellValue != WALL_VALUE &&
+                    std::find(lines_to_clear.begin(), lines_to_clear.end(), y) != lines_to_clear.end()) {
                     long long elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::system_clock::now().time_since_epoch()).count() - line_clear_start_time;
                     displayStr = ((elapsed / 100) % 2 == 0) ? "##" : " .";
