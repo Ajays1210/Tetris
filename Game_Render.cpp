@@ -2,13 +2,27 @@
 #include <windows.h>
 #include <conio.h>
 
+// Shared helper for the pause and game-over overlay panels.
+// Draws one line: a solid border if text is empty, or a centred text string otherwise.
+void Game::DrawCenteredOverlay(int yPos, const std::string& text, char borderChar, int startX, int menuWidth) {
+    SetCursorPosition(startX, yPos);
+    if (text.empty()) {
+        std::cout << std::string(menuWidth, borderChar);
+    } else {
+        int padding = menuWidth - static_cast<int>(text.length());
+        int leftPadding = padding / 2;
+        int rightPadding = padding - leftPadding;
+        std::cout << std::string(leftPadding, ' ') << text << std::string(rightPadding, ' ');
+    }
+}
+
 // This function draws the "Heads-Up Display" (HUD) on the right side of the board.
 void Game::DrawStats() {
     /* Calculating the starting X position based on the board width so the
      text always stays to the right of the game. */
     int startX = (LOGICAL_BOARD_WIDTH * 2) + 4;
 
-    // Draw High Score at the very top of the HUD
+    // Draw High Score at the very top of the HUD.
     SetCursorPosition(startX, 0);
     std::cout << "BEST SCORE: " << high_score << "          ";
 
@@ -47,66 +61,28 @@ void Game::DrawStats() {
 void Game::DrawBoard() {
     int centerY = GAME_BOARD_HEIGHT / 2;
 
-    // --- 1. GAME OVER OVERLAY (Fully Dynamic & Future-Proof) ---
+    // --- 1. GAME OVER OVERLAY ---
     if (is_game_over) {
-        // Calculate the maximum width available inside the walls (in characters)
-        int playableCharWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
+        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
+        int startX = 2;
 
-        // We want our menu box to take up almost all inner space, leaving 1 character padding on each side
-        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2; // Full playable interior width
-
-        int startX = 2;                                // Anchor right next to '<!' left wall
-
-        // Helper lambda to print a perfectly padded centered text line
-        auto printCenteredLine = [this, startX, menuWidth](int yPos, std::string text, char borderChar) {
-            SetCursorPosition(startX, yPos);
-            if (text.empty()) {
-                // If no text, print a solid border line (like ================)
-                std::cout << std::string(menuWidth, borderChar);
-            } else {
-                // Otherwise, pad the text with spaces so it fills the menuWidth perfectly
-                int padding = menuWidth - text.length();
-                int leftPadding = padding / 2;
-                int rightPadding = padding - leftPadding;
-                std::cout << std::string(leftPadding, ' ') << text << std::string(rightPadding, ' ');
-            }
-        };
-
-        // Render the menu box elements cleanly using the calculated metrics
-        printCenteredLine(centerY - 1, "", '=');
-        printCenteredLine(centerY,     "--- GAME OVER! ---", ' ');
-        printCenteredLine(centerY + 1, "Score: " + std::to_string(score), ' ');
-        printCenteredLine(centerY + 2, "5 to Reset Game", ' ');
-        printCenteredLine(centerY + 3, "", '=');
+        DrawCenteredOverlay(centerY - 1, "", '=', startX, menuWidth);
+        DrawCenteredOverlay(centerY,     "--- GAME OVER! ---", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 1, "Score: " + std::to_string(score), ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 2, "5 to Reset Game", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 3, "", '=', startX, menuWidth);
         return;
     }
 
-    // --- 2. PAUSE OVERLAY (Flicker-Free Early Exit) ---
+    // --- 2. PAUSE OVERLAY ---
     if (is_paused) {
-        // Dynamically compute the exact safe width inside the side walls
-        int playableCharWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
-        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2; // Full playable interior width
+        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
+        int startX = 2;
 
-        int startX = 2;                                // Anchor right next to '<!' left wall
-
-        // Lambda helper featuring the 'this' capture fix to securely change cursor placements
-        auto printCenteredLine = [this, startX, menuWidth](int yPos, std::string text, char borderChar) {
-            SetCursorPosition(startX, yPos);
-            if (text.empty()) {
-                std::cout << std::string(menuWidth, borderChar);
-            } else {
-                int padding = menuWidth - text.length();
-                int leftPadding = padding / 2;
-                int rightPadding = padding - leftPadding;
-                std::cout << std::string(leftPadding, ' ') << text << std::string(rightPadding, ' ');
-            }
-        };
-
-        // Render the Pause text box cleanly between your walls
-        printCenteredLine(centerY - 1, "", '=');
-        printCenteredLine(centerY,     "--- PAUSED ---", ' ');
-        printCenteredLine(centerY + 1, "0 to Resume Game", ' ');
-        printCenteredLine(centerY + 2, "", '=');
+        DrawCenteredOverlay(centerY - 1, "", '=', startX, menuWidth);
+        DrawCenteredOverlay(centerY,     "--- PAUSED ---", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 1, "0 to Resume Game", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 2, "", '=', startX, menuWidth);
         return;
     }
 
@@ -114,7 +90,7 @@ void Game::DrawBoard() {
     // This only runs when the game is actively unpaused and running!
     SetCursorPosition(0, 0);
 
-    for (int y = 0; y < GAME_BOARD_HEIGHT; ++y) { // Runs all the way to the bottom row safely
+    for (int y = 0; y < GAME_BOARD_HEIGHT; ++y) { // Runs all the way to the bottom row safely.
         for (int x = 0; x < LOGICAL_BOARD_WIDTH; ++x) {
             std::string displayStr = "  ";
             bool isPieceCell = false;
@@ -137,7 +113,7 @@ void Game::DrawBoard() {
                         std::chrono::system_clock::now().time_since_epoch()).count() - line_clear_start_time;
                     displayStr = ((elapsed / 100) % 2 == 0) ? "##" : " .";
                 }
-                // Draw walls and bottom edges dynamically using the board data values
+                // Draw walls and bottom edges dynamically using the board data values.
                 else if (cellValue == WALL_VALUE) {
                     if (y == 0) {
                         displayStr = "  "; // Keep top invisible so pieces can spawn.
@@ -145,7 +121,7 @@ void Game::DrawBoard() {
                     else if (y == GAME_BOARD_HEIGHT - 1) {
                         if (x == 0) displayStr = "<!"; // Bottom Left Corner
                         else if (x == LOGICAL_BOARD_WIDTH - 1) displayStr = "!>"; // Bottom Right Corner
-                        else displayStr = "=="; // Floor piece that stretches automatically
+                        else displayStr = "=="; // Floor piece that stretches automatically.
                     }
                     else if (x == 0) {
                         displayStr = "<!"; // Left wall.
@@ -168,12 +144,11 @@ void Game::DrawBoard() {
         std::cout << "\n";
     }
 
-    // Decorative accents printed underneath the dynamic board
-    // --- FIXED: DYNAMIC DECORATIVE ACCENTS ---
-    // Start at character position 2 (skipping the left wall '<!')
+    // Decorative accents printed underneath the board.
+    // Start at character position 2 (skipping the left wall '<!').
     SetCursorPosition(2, GAME_BOARD_HEIGHT);
 
-    // Loop through the inner width of the board and print matching jagged segments
+    // Loop through the inner width of the board and print matching jagged segments.
     for (int i = 0; i < LOGICAL_BOARD_WIDTH - 2; ++i) {
         std::cout << "\\/";
     }
@@ -189,7 +164,7 @@ void Game::Run() {
         auto now = std::chrono::system_clock::now();
 
         if (!is_game_over) {
-            // Case A: Here currently playing the "line clear" animation.
+            // Case A: Currently playing the "line clear" animation.
             if (is_clearing_lines) {
                 long long currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
                 // Wait for the animation delay to finish before dropping blocks.

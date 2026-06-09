@@ -113,6 +113,7 @@ private:
 
     // --- Visuals (Game_Render.cpp) ---
     void SetCursorPosition(int x, int y);
+    void DrawCenteredOverlay(int yPos, const std::string& text, char borderChar, int startX, int menuWidth);
     void DrawBoard();
     void DrawStats();
 };
