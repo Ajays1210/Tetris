@@ -32,7 +32,7 @@ void Game::ProcessInput() {
                 MovePiece(1, 0);  // Move Right.
                 break;
             case '4': case 's': case 'S':
-                // Only award the soft drop point if the path below is clear
+                // Only award the soft drop point if the path below is clear.
                 if (!CheckCollision(current_piece.shape, current_pos.x, current_pos.y + 1)) {
                     MovePiece(0, 1);  // Move Down (Soft Drop).
                     score += 1LL; // +1 point per cell for soft drop
@@ -45,10 +45,11 @@ void Game::ProcessInput() {
                     current_pos.y += 1;
                     drop_distance++;
                 }
-                LockPiece(); // Stick it to the board immediately.
 
-                // +2 points per cell for hard drop
+                // Score is added BEFORE LockPiece so UpdateHighScore (called
+                // inside LockPiece) already sees the full updated value.
                 score += static_cast<int64_t>(drop_distance) * 2LL;
+                LockPiece(); // Stick it to the board immediately.
                 break;
             }
             case '8': case 'w': case 'W':
@@ -70,7 +71,7 @@ void Game::ProcessInput() {
 // This calculates how fast the piece should fall.
 // As your level goes up, the time between drops gets smaller (faster).
 int Game::GetFallSpeedMS() const {
-    // Calculates falling delay based on the level (capped at 20)
+    // Calculates falling delay based on the level (capped at 20).
     int speed = static_cast<int>(500 * std::pow(0.8, level - 1));
 
     // We set a "speed limit" (50ms) so the game doesn't become impossible.
@@ -81,6 +82,10 @@ int Game::GetFallSpeedMS() const {
 void Game::ResetGame() {
     // Use our helper to clear the board and rebuild the walls.
     ResetBoardWithWalls();
+
+    // Clear any pending line-clear state so stale row indices can't
+    // corrupt the fresh board if a reset fires mid-animation.
+    lines_to_clear.clear();
 
     // Reset all our flags and progress markers.
     is_game_over = false;

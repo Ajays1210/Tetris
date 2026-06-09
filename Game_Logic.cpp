@@ -56,8 +56,8 @@ bool Game::TryRotationWithWallKicks() {
     ShapeMatrix rotatedShape = RotatePiece(current_piece.shape);
     bool isIPiece = (current_piece.id == 1);
 
-    // Corrected offsets: We try the original spot, then 1 block left, 1 block right,
-    // 2 blocks left, and 2 blocks right. This covers both the left and right walls.
+    // We try the original spot, then nudge left/right by 1 and 2 units.
+    // This covers both walls cleanly for all standard pieces.
     const std::array<Position, 5> standard_offsets = {{
         {0, 0},   // Test 1: Try original spot
         {-1, 0},  // Test 2: Nudge left 1 unit
@@ -105,22 +105,32 @@ void Game::LockPiece() {
 
     ClearLines();
 
+    // Update the high score here so any points scored on this move (including
+    // a hard drop bonus added just before this call) are captured immediately,
+    // even if no lines were cleared and ShiftLinesDown never runs this turn.
+    UpdateHighScore();
+
     // Prepare the next piece.
     current_piece = next_piece;
     current_pos.x = LOGICAL_BOARD_WIDTH / 2 - 2;
     current_pos.y = 0;
 
-    // 4. THE REFILL: ONLY pick a new piece for the "Next" slot.
+    // Only pick a new piece for the "Next" slot.
     // We do NOT call InitializeTetrominos() here because it would overwrite current_piece.
     std::uniform_int_distribution<int> dist(0, static_cast<int>(TETROMINO_TEMPLATES.size()) - 1);
     int next_index = dist(rng);
     next_piece.shape = TETROMINO_TEMPLATES[next_index];
     next_piece.id = next_index + 1;
 
-    // Check if the new piece immediately hits something (Board is full).
-    if (CheckCollision(current_piece.shape, current_pos.x, current_pos.y)) {
+    // Check if the new piece immediately hits something (board is full).
+    // IMPORTANT: only do this check if no lines are pending clearance. If lines
+    // are about to be removed, the board still contains those full rows right now,
+    // which would make CheckCollision return a false positive and end the game
+    // even though clearing the rows might free up the spawn area.
+    // ShiftLinesDown() repeats this check once the board is actually clean.
+    if (!is_clearing_lines && CheckCollision(current_piece.shape, current_pos.x, current_pos.y)) {
         is_game_over = true;
-        }
+    }
 }
 
 // Scans the board to see if any rows are completely full of blocks.
@@ -156,12 +166,12 @@ void Game::ShiftLinesDown() {
     // Official Tetris Guideline scoring progression array (0, Single, Double, Triple, Tetris)
     static const int LINE_SCORES[] = {0, 100, 300, 500, 800};
 
-    // Protect against indexing out of bounds, then apply the disproportionate reward multiplier
+    // Protect against indexing out of bounds, then apply the disproportionate reward multiplier.
     if (count >= 1 && count <= 4) {
         score += static_cast<int64_t>(LINE_SCORES[count]) * level;
     }
     UpdateHighScore();
-    // Use the named constant here while safely maintaining the level 20 cap
+    // Use the named constant here while safely maintaining the level 20 cap.
     level = std::min((lines_cleared / LINES_PER_LEVEL) + 1, 20);
 
     int dropDistance = 0;
@@ -177,6 +187,14 @@ void Game::ShiftLinesDown() {
     }
     lines_to_clear.clear();
     is_clearing_lines = false;
+
+    // Now that the rows are gone and everything has shifted down, run the
+    // game over check that was deferred in LockPiece. The spawn area may
+    // genuinely be blocked even after clearing — this is the correct moment
+    // to know for sure.
+    if (CheckCollision(current_piece.shape, current_pos.x, current_pos.y)) {
+        is_game_over = true;
+    }
 }
 
 void Game::LoadHighScore() {
