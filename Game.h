@@ -29,8 +29,8 @@ const std::vector<ShapeMatrix> TETROMINO_TEMPLATES = {
 };
 
 // These constants define the size of our game world.
-const int LOGICAL_BOARD_WIDTH = 12; // 10 columns for play + 2 for side walls.
-const int GAME_BOARD_HEIGHT = 22;   // 20 rows for play + 1 top wall + 1 bottom wall.
+constexpr int LOGICAL_BOARD_WIDTH = 12; // 10 columns for play + 2 for side walls.
+constexpr int GAME_BOARD_HEIGHT = 22;   // 20 rows for play + 1 top wall + 1 bottom wall.
 
 constexpr int WALL_VALUE = 9;
 constexpr int EMPTY_VALUE = 0;
