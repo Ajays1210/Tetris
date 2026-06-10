@@ -66,7 +66,8 @@ private:
     // --- Game State Flags ---
     bool show_next_piece = true; // Can be toggled to hide/show the preview.
     bool is_paused = false;      // Stops the game logic when true.
-    bool is_game_over = false;   // Set to true when the stack reaches the top.
+    bool is_game_over = false;      // Set to true when the stack reaches the top.
+    bool game_over_drawn = false;   // Prevents redrawing the game over screen every frame.
 
     // --- Line Clearing & Animation ---
     std::vector<int> lines_to_clear;     // List of rows that are currently full.

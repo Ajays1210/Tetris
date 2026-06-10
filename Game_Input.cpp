@@ -89,6 +89,7 @@ void Game::ResetGame() {
 
     // Reset all our flags and progress markers.
     is_game_over = false;
+    game_over_drawn = false;
     is_paused = false;
     is_clearing_lines = false;
     score = 0;

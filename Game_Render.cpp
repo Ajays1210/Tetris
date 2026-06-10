@@ -59,6 +59,11 @@ void Game::DrawStats() {
 
 // This is the core visual engine. It draws every block and empty space on the grid.
 void Game::DrawBoard() {
+    // If game over was already fully rendered, skip redrawing every frame.
+    // Nothing changes on screen so repainting causes flicker.
+    // The flag is cleared in ResetGame() so the next game gets a fresh draw.
+    if (is_game_over && game_over_drawn) return;
+
     int centerY = GAME_BOARD_HEIGHT / 2;
 
     // --- 1. PAUSE OVERLAY (early exit - nothing on the board is moving) ---
@@ -165,6 +170,7 @@ void Game::DrawBoard() {
         DrawCenteredOverlay(centerY + 1, "Score: " + std::to_string(score), ' ', startX, menuWidth);
         DrawCenteredOverlay(centerY + 2, "5 to Reset Game", ' ', startX, menuWidth);
         DrawCenteredOverlay(centerY + 3, "", '=', startX, menuWidth);
+        game_over_drawn = true;
     }
 }
 
