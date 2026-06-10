@@ -61,20 +61,7 @@ void Game::DrawStats() {
 void Game::DrawBoard() {
     int centerY = GAME_BOARD_HEIGHT / 2;
 
-    // --- 1. GAME OVER OVERLAY ---
-    if (is_game_over) {
-        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
-        int startX = 2;
-
-        DrawCenteredOverlay(centerY - 1, "", '=', startX, menuWidth);
-        DrawCenteredOverlay(centerY,     "--- GAME OVER! ---", ' ', startX, menuWidth);
-        DrawCenteredOverlay(centerY + 1, "Score: " + std::to_string(score), ' ', startX, menuWidth);
-        DrawCenteredOverlay(centerY + 2, "5 to Reset Game", ' ', startX, menuWidth);
-        DrawCenteredOverlay(centerY + 3, "", '=', startX, menuWidth);
-        return;
-    }
-
-    // --- 2. PAUSE OVERLAY ---
+    // --- 1. PAUSE OVERLAY (early exit - nothing on the board is moving) ---
     if (is_paused) {
         int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
         int startX = 2;
@@ -86,17 +73,28 @@ void Game::DrawBoard() {
         return;
     }
 
-    // --- 3. NORMAL GAMEPLAY RENDERING ---
-    // This only runs when the game is actively unpaused and running!
+    // --- 2. BOARD RENDERING (runs for both normal gameplay AND game over) ---
+    // The old code returned early on game over after drawing only 5 overlay
+    // lines in the middle of the screen. This left the previous frame's pixels
+    // at rows 0-9 untouched, so the player saw a stale "floating piece" with a
+    // gap below it and assumed the game over was a false positive.
+    //
+    // Fix: always redraw the full board before any overlay. During game over we
+    // suppress the active piece so the player sees the real locked-board state,
+    // making it clear which blocks are blocking the spawn area. The overlay is
+    // then drawn on top of the freshly rendered board.
     SetCursorPosition(0, 0);
 
-    for (int y = 0; y < GAME_BOARD_HEIGHT; ++y) { // Runs all the way to the bottom row safely.
+    for (int y = 0; y < GAME_BOARD_HEIGHT; ++y) {
         for (int x = 0; x < LOGICAL_BOARD_WIDTH; ++x) {
             std::string displayStr = "  ";
             bool isPieceCell = false;
 
-            // Check if the falling piece is currently over this (x, y) spot.
-            if (x >= current_pos.x && x < current_pos.x + 4 && y >= current_pos.y && y < current_pos.y + 4) {
+            // Draw the active falling piece - suppressed on game over so the
+            // player can see the actual board state that triggered the end.
+            if (!is_game_over &&
+                x >= current_pos.x && x < current_pos.x + 4 &&
+                y >= current_pos.y && y < current_pos.y + 4) {
                 if (current_piece.shape[y - current_pos.y][x - current_pos.x] == 'X') {
                     displayStr = "[]";
                     isPieceCell = true;
@@ -155,6 +153,18 @@ void Game::DrawBoard() {
     // Loop through the inner width of the board and print matching jagged segments.
     for (int i = 0; i < LOGICAL_BOARD_WIDTH - 2; ++i) {
         std::cout << "\\/";
+    }
+
+    // --- 3. GAME OVER OVERLAY (drawn on top of the refreshed board) ---
+    if (is_game_over) {
+        int menuWidth = (LOGICAL_BOARD_WIDTH - 2) * 2;
+        int startX = 2;
+
+        DrawCenteredOverlay(centerY - 1, "", '=', startX, menuWidth);
+        DrawCenteredOverlay(centerY,     "--- GAME OVER! ---", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 1, "Score: " + std::to_string(score), ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 2, "5 to Reset Game", ' ', startX, menuWidth);
+        DrawCenteredOverlay(centerY + 3, "", '=', startX, menuWidth);
     }
 }
 
